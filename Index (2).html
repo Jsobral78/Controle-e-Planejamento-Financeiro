@@ -1,0 +1,1213 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Controle Financeiro Pro & Cartões</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { 
+            -webkit-appearance: none; 
+            margin: 0; 
+        }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 font-sans min-h-screen flex flex-col">
+
+    <!-- HEADER -->
+    <header class="bg-white border-b border-slate-200 px-6 py-4 flex flex-col md:flex-row justify-between items-center gap-4 shadow-sm">
+        <div class="flex items-center gap-3">
+            <div class="bg-pink-600 text-white p-3 rounded-xl shadow-md">
+                <i class="fa-solid fa-wallet text-xl"></i>
+            </div>
+            <div>
+                <h1 class="text-xl font-bold tracking-tight text-slate-900">Controle Financeiro Pro</h1>
+                <p class="text-xs text-slate-500">Orçamento Anual, Cartões, Status, Metas & Simulador</p>
+            </div>
+        </div>
+        <div class="flex flex-wrap items-center gap-3">
+            <!-- BACKUP / RESTORE -->
+            <div class="flex items-center gap-1.5 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
+                <button onclick="exportarBackup()" title="Exportar Backup" class="text-slate-600 hover:text-pink-600 text-xs font-semibold flex items-center gap-1 transition">
+                    <i class="fa-solid fa-download"></i> Backup
+                </button>
+                <span class="text-slate-300">|</span>
+                <label title="Importar Backup" class="text-slate-600 hover:text-pink-600 text-xs font-semibold flex items-center gap-1 cursor-pointer transition">
+                    <i class="fa-solid fa-upload"></i> Importar
+                    <input type="file" id="inputImport" accept=".json" onchange="importarBackup(event)" class="hidden">
+                </label>
+            </div>
+
+            <div class="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200 shadow-inner">
+                <span class="text-xs text-slate-500 font-medium">Ano:</span>
+                <select id="anoSelect" class="bg-transparent text-pink-600 font-bold focus:outline-none cursor-pointer">
+                    <option value="2025">2025</option>
+                    <option value="2026" selected>2026</option>
+                    <option value="2027">2027</option>
+                </select>
+            </div>
+            <button onclick="restaurarPadroes()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5">
+                <i class="fa-solid fa-rotate-right"></i> Restaurar
+            </button>
+        </div>
+    </header>
+
+    <!-- NAVEGAÇÃO DE ABAS -->
+    <nav class="bg-white border-b border-slate-200 px-6 flex gap-2 overflow-x-auto shadow-xs">
+        <button onclick="mudarAba('dashboard')" id="btn-dashboard" class="tab-btn px-5 py-3 border-b-2 font-medium text-sm flex items-center gap-2 transition whitespace-nowrap border-pink-600 text-pink-600">
+            <i class="fa-solid fa-chart-pie"></i> Dashboard Otimizado
+        </button>
+        <button onclick="mudarAba('planilha')" id="btn-planilha" class="tab-btn px-5 py-3 border-b-2 font-medium text-sm flex items-center gap-2 transition whitespace-nowrap border-transparent text-slate-500 hover:text-slate-800">
+            <i class="fa-solid fa-table"></i> Planilha Anual
+        </button>
+        <button onclick="mudarAba('cartoes')" id="btn-cartoes" class="tab-btn px-5 py-3 border-b-2 font-medium text-sm flex items-center gap-2 transition whitespace-nowrap border-transparent text-slate-500 hover:text-slate-800">
+            <i class="fa-solid fa-credit-card"></i> Cartões (Formato Anual)
+        </button>
+        <button onclick="mudarAba('poupancas')" id="btn-poupancas" class="tab-btn px-5 py-3 border-b-2 font-medium text-sm flex items-center gap-2 transition whitespace-nowrap border-transparent text-slate-500 hover:text-slate-800">
+            <i class="fa-solid fa-piggy-bank"></i> Poupanças & Metas
+        </button>
+    </nav>
+
+    <!-- CONTEÚDO PRINCIPAL -->
+    <main class="flex-1 p-4 w-full">
+        
+        <!-- ================= ABA 1: DASHBOARD ================= -->
+        <div id="tab-dashboard" class="space-y-6 max-w-7xl mx-auto">
+            <!-- COMPARAÇÃO ANUAL -->
+            <div class="bg-gradient-to-r from-pink-600 to-rose-600 text-white p-4 rounded-xl shadow-md flex flex-col sm:flex-row justify-between items-center gap-4">
+                <div class="flex items-center gap-3">
+                    <div class="bg-white/20 p-2.5 rounded-lg">
+                        <i class="fa-solid fa-scale-unbalanced text-xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-sm">Comparativo Interanual</h3>
+                        <p class="text-xs text-pink-100">Análise de desempenho financeiro entre anos salvos</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3">
+                    <select id="anoComparacao" onchange="atualizarDashboard()" class="bg-white/10 border border-white/30 text-white font-semibold text-xs px-3 py-1.5 rounded-lg focus:outline-none cursor-pointer">
+                        <option value="2025" class="text-slate-800">2025</option>
+                        <option value="2026" class="text-slate-800">2026</option>
+                        <option value="2027" class="text-slate-800">2027</option>
+                    </select>
+                    <div id="badgeComparacao" class="bg-white text-pink-700 font-bold px-3 py-1.5 rounded-lg text-xs shadow-sm">
+                        Calculando...
+                    </div>
+                </div>
+            </div>
+
+            <!-- CARDS KPI -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="bg-white border border-slate-200 p-5 rounded-xl shadow-sm">
+                    <div class="flex justify-between items-center text-slate-500 mb-2">
+                        <span class="text-sm font-medium">Receitas Totais (Ano)</span>
+                        <i class="fa-solid fa-arrow-trend-up text-emerald-600 text-lg"></i>
+                    </div>
+                    <div id="kpi-receita" class="text-2xl font-bold text-emerald-600">R$ 0,00</div>
+                </div>
+                <div class="bg-white border border-slate-200 p-5 rounded-xl shadow-sm">
+                    <div class="flex justify-between items-center text-slate-500 mb-2">
+                        <span class="text-sm font-medium">Despesas Totais (Ano)</span>
+                        <i class="fa-solid fa-arrow-trend-down text-rose-600 text-lg"></i>
+                    </div>
+                    <div id="kpi-despesa" class="text-2xl font-bold text-rose-600">R$ 0,00</div>
+                </div>
+                <div class="bg-white border border-slate-200 p-5 rounded-xl shadow-sm">
+                    <div class="flex justify-between items-center text-slate-500 mb-2">
+                        <span class="text-sm font-medium">Balanço Líquido</span>
+                        <i class="fa-solid fa-scale-balanced text-cyan-600 text-lg"></i>
+                    </div>
+                    <div id="kpi-balanco" class="text-2xl font-bold text-cyan-600">R$ 0,00</div>
+                </div>
+                <div class="bg-white border border-slate-200 p-5 rounded-xl shadow-sm">
+                    <div class="flex justify-between items-center text-slate-500 mb-2">
+                        <span class="text-sm font-medium">Total Guardado (Metas)</span>
+                        <i class="fa-solid fa-piggy-bank text-indigo-600 text-lg"></i>
+                    </div>
+                    <div id="kpi-poupanca" class="text-2xl font-bold text-indigo-600">R$ 0,00</div>
+                </div>
+            </div>
+
+            <!-- GRÁFICOS -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="bg-white border border-slate-200 p-5 rounded-xl shadow-sm lg:col-span-2">
+                    <h3 class="text-base font-bold text-slate-800 mb-4 flex items-center gap-2">
+                        <i class="fa-solid fa-chart-column text-pink-600"></i> Evolução Mensal (Entradas vs Saídas)
+                    </h3>
+                    <div class="h-72 relative">
+                        <canvas id="graficoEvolucao"></canvas>
+                    </div>
+                </div>
+                <div class="bg-white border border-slate-200 p-5 rounded-xl shadow-sm">
+                    <h3 class="text-base font-bold text-slate-800 mb-4 flex items-center gap-2">
+                        <i class="fa-solid fa-chart-pie text-pink-600"></i> Distribuição Anual
+                    </h3>
+                    <div class="h-72 relative flex items-center justify-center">
+                        <canvas id="graficoPizza"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- GRÁFICO DE EVOLUÇÃO DOS CARTÕES -->
+            <div class="bg-white border border-slate-200 p-5 rounded-xl shadow-sm">
+                <h3 class="text-base font-bold text-slate-800 mb-4 flex items-center gap-2">
+                    <i class="fa-solid fa-credit-card text-pink-600"></i> Consumo Anual por Cartão / Fatura
+                </h3>
+                <div class="h-72 relative">
+                    <canvas id="graficoCartoesEvolucao"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= ABA 2: PLANILHA ANUAL ================= -->
+        <div id="tab-planilha" class="space-y-4 w-full hidden">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-white p-4 rounded-xl border border-slate-200 shadow-sm max-w-7xl mx-auto">
+                <div>
+                    <h2 class="text-lg font-bold text-slate-800">Planilha de Controle Anual</h2>
+                    <p class="text-xs text-slate-500">Edite os valores nas células abaixo. Filtre por status se desejar.</p>
+                </div>
+                <div class="flex flex-wrap items-center gap-2">
+                    <select id="filtroStatusPlanilha" onchange="montarPlanilhaAnual()" class="bg-slate-50 border border-slate-200 text-slate-700 rounded-lg px-3 py-2 text-xs font-semibold focus:outline-none cursor-pointer">
+                        <option value="todos">🔍 Todos os Status</option>
+                        <option value="pago">🟢 Apenas Pagos</option>
+                        <option value="pendente">🟡 Apenas Pendentes</option>
+                        <option value="devendo">🔴 Apenas Devendo / Atrasados</option>
+                    </select>
+                    <button onclick="abrirModalCategoria()" class="bg-slate-800 hover:bg-slate-700 text-white px-3 py-2 rounded-lg text-sm font-semibold transition flex items-center gap-1.5 shadow-sm">
+                        <i class="fa-solid fa-plus"></i> Nova Categoria
+                    </button>
+                    <button onclick="salvarPlanilha()" class="bg-pink-600 hover:bg-pink-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition flex items-center gap-2 shadow-sm">
+                        <i class="fa-solid fa-floppy-disk"></i> Salvar
+                    </button>
+                </div>
+            </div>
+
+            <!-- LEGENDA DE STATUS -->
+            <div class="max-w-7xl mx-auto flex items-center gap-4 text-xs font-semibold px-1 text-slate-600">
+                <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-emerald-500 inline-block"></span> Pago</span>
+                <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-amber-500 inline-block"></span> Pendente</span>
+                <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-rose-500 inline-block"></span> Devendo / Atrasado</span>
+                <span class="text-slate-400 ml-auto">(Clique no círculo de status de cada linha para alternar)</span>
+            </div>
+
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden w-full">
+                <table class="w-full text-left border-collapse text-xs table-fixed">
+                    <thead id="planilha-head" class="bg-slate-900 text-slate-200 uppercase tracking-wider text-[11px]"></thead>
+                    <tbody id="planilha-body" class="divide-y divide-slate-100"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ================= ABA 3: CARTÕES (FORMATO ANUAL) ================= -->
+        <div id="tab-cartoes" class="space-y-4 w-full hidden">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-white p-4 rounded-xl border border-slate-200 shadow-sm max-w-7xl mx-auto">
+                <div>
+                    <h2 class="text-lg font-bold text-slate-800">Controle de Cartões de Crédito (Anual)</h2>
+                    <p class="text-xs text-slate-500">Lançamento por cartão mês a mês. Filtre faturas por status se desejar.</p>
+                </div>
+                <div class="flex flex-wrap items-center gap-2">
+                    <select id="filtroStatusCartoes" onchange="montarCartoesAnual()" class="bg-slate-50 border border-slate-200 text-slate-700 rounded-lg px-3 py-2 text-xs font-semibold focus:outline-none cursor-pointer">
+                        <option value="todos">🔍 Todos os Status</option>
+                        <option value="pago">🟢 Apenas Pagos</option>
+                        <option value="pendente">🟡 Apenas Pendentes</option>
+                        <option value="devendo">🔴 Apenas Devendo / Atrasados</option>
+                    </select>
+                    <button onclick="abrirModalCartao()" class="bg-slate-800 hover:bg-slate-700 text-white px-3 py-2 rounded-lg text-sm font-semibold transition flex items-center gap-1.5 shadow-sm">
+                        <i class="fa-solid fa-plus"></i> Novo Cartão
+                    </button>
+                    <button onclick="salvarCartoes()" class="bg-pink-600 hover:bg-pink-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition flex items-center gap-2 shadow-sm">
+                        <i class="fa-solid fa-floppy-disk"></i> Salvar Cartões
+                    </button>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden w-full">
+                <table class="w-full text-left border-collapse text-xs table-fixed">
+                    <thead id="cartoes-head" class="bg-slate-900 text-slate-200 uppercase tracking-wider text-[11px]"></thead>
+                    <tbody id="cartoes-body" class="divide-y divide-slate-100"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ================= ABA 4: POUPANÇAS E METAS ================= -->
+        <div id="tab-poupancas" class="space-y-6 w-full hidden max-w-7xl mx-auto">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                <div>
+                    <h2 class="text-lg font-bold text-slate-800">Poupanças & Metas Financeiras</h2>
+                    <p class="text-xs text-slate-500">Acompanhe o progresso das suas reservas e utilize o simulador de prazos.</p>
+                </div>
+                <button onclick="abrirModalMeta()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition flex items-center gap-2 shadow-sm">
+                    <i class="fa-solid fa-plus"></i> Nova Meta / Poupança
+                </button>
+            </div>
+
+            <!-- SIMULADOR DE METAS -->
+            <div class="bg-gradient-to-r from-indigo-900 to-slate-900 text-white p-5 rounded-xl shadow-md space-y-4">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-calculator text-indigo-400 text-lg"></i>
+                    <h3 class="font-bold text-sm">Simulador de Alcance de Metas</h3>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">Selecione a Meta:</label>
+                        <select id="simuladorMetaId" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-xs text-white focus:outline-none focus:border-indigo-500 cursor-pointer">
+                            <!-- Gerado via JS -->
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">Quanto consegue guardar por mês (R$):</label>
+                        <input type="number" id="simuladorMensal" placeholder="500.00" oninput="executarSimulacao()" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-xs text-white focus:outline-none focus:border-indigo-500">
+                    </div>
+                    <div id="resultadoSimulador" class="bg-indigo-950/80 border border-indigo-500/30 p-2.5 rounded-lg text-xs font-medium text-indigo-200">
+                        Insira um valor mensal para simular o prazo.
+                    </div>
+                </div>
+            </div>
+
+            <div id="lista-metas" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- Renderizado via JS -->
+            </div>
+        </div>
+
+    </main>
+
+    <!-- MODAL: NOVA CATEGORIA -->
+    <div id="modalCategoria" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs hidden flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl border border-slate-200 space-y-4">
+            <div class="flex justify-between items-center">
+                <h3 class="text-base font-bold text-slate-800">Adicionar Nova Categoria</h3>
+                <button onclick="fecharModalCategoria()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Seção de Destino:</label>
+                    <select id="novaCatSecao" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs font-medium text-slate-800 focus:outline-none focus:border-pink-600">
+                        <option value="receita">ENTRADA: RECEITAS</option>
+                        <option value="fixa">SAÍDA: DESPESAS FIXAS</option>
+                        <option value="variavel">SAÍDA: DESPESAS VARIÁVEIS</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Nome da Categoria:</label>
+                    <input type="text" id="novaCatNome" placeholder="Ex: Investimentos, Pet, Academia..." class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs text-slate-800 focus:outline-none focus:border-pink-600">
+                </div>
+            </div>
+            <div class="flex justify-end gap-2 pt-2">
+                <button onclick="fecharModalCategoria()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-4 py-2 rounded-lg text-xs font-semibold">Cancelar</button>
+                <button onclick="adicionarCategoria()" class="bg-pink-600 hover:bg-pink-700 text-white px-4 py-2 rounded-lg text-xs font-semibold">Adicionar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: NOVO CARTÃO -->
+    <div id="modalCartao" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs hidden flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl border border-slate-200 space-y-4">
+            <div class="flex justify-between items-center">
+                <h3 class="text-base font-bold text-slate-800">Adicionar Novo Cartão</h3>
+                <button onclick="fecharModalCartao()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Nome do Cartão / Bandeira:</label>
+                <input type="text" id="novoCartaoNome" placeholder="Ex: C6 Bank, XP Visa, Hipercard..." class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs text-slate-800 focus:outline-none focus:border-pink-600">
+            </div>
+            <div class="flex justify-end gap-2 pt-2">
+                <button onclick="fecharModalCartao()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-4 py-2 rounded-lg text-xs font-semibold">Cancelar</button>
+                <button onclick="adicionarCartao()" class="bg-pink-600 hover:bg-pink-700 text-white px-4 py-2 rounded-lg text-xs font-semibold">Adicionar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: NOVA META / POUPANÇA -->
+    <div id="modalMeta" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs hidden flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl border border-slate-200 space-y-4">
+            <div class="flex justify-between items-center">
+                <h3 class="text-base font-bold text-slate-800">Adicionar Poupança ou Meta</h3>
+                <button onclick="fecharModalMeta()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Nome da Meta / Objetivo:</label>
+                    <input type="text" id="metaNome" placeholder="Ex: Reserva de Emergência, Viagem Europa..." class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs text-slate-800 focus:outline-none focus:border-indigo-600">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Valor Alvo (Meta R$):</label>
+                    <input type="number" step="0.01" id="metaAlvo" placeholder="10000.00" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs text-slate-800 focus:outline-none focus:border-indigo-600">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Valor Atual Guardado (R$):</label>
+                    <input type="number" step="0.01" id="metaAtual" placeholder="1500.00" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs text-slate-800 focus:outline-none focus:border-indigo-600">
+                </div>
+            </div>
+            <div class="flex justify-end gap-2 pt-2">
+                <button onclick="fecharModalMeta()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-4 py-2 rounded-lg text-xs font-semibold">Cancelar</button>
+                <button onclick="adicionarMeta()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-xs font-semibold">Salvar Meta</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST DE NOTIFICAÇÃO -->
+    <div id="toast" class="fixed bottom-5 right-5 bg-pink-600 text-white px-4 py-3 rounded-xl shadow-xl flex items-center gap-3 transition-all duration-300 transform translate-y-20 opacity-0 z-50">
+        <i class="fa-solid fa-circle-check text-lg"></i>
+        <span id="toast-msg" class="text-sm font-semibold">Dados salvos com sucesso!</span>
+    </div>
+
+    <!-- SCRIPT DE FUNCIONAMENTO -->
+    <script>
+        const meses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+        
+        let estruturaPlanilhaPadrao = [
+            { tipo: 'header', nome: 'ENTRADA: RECEITAS', cor: 'bg-emerald-800 text-white font-bold', secao: 'receita' },
+            { tipo: 'linha', nome: 'Salário', secao: 'receita' },
+            { tipo: 'linha', nome: 'Horas Extras', secao: 'receita' },
+            { tipo: 'linha', nome: 'Prestação de Serviços', secao: 'receita' },
+            { tipo: 'linha', nome: 'Outras Receitas', secao: 'receita' },
+            { tipo: 'total', nome: 'TOTAL RECEITAS', cor: 'bg-emerald-100 text-emerald-900 font-bold' },
+
+            { tipo: 'header', nome: 'SAÍDA: DESPESAS FIXAS', cor: 'bg-rose-700 text-white font-bold', secao: 'fixa' },
+            { tipo: 'linha', nome: 'Aluguel', secao: 'fixa' },
+            { tipo: 'linha', nome: 'Condomínio', secao: 'fixa' },
+            { tipo: 'linha', nome: 'Plano de Saúde', secao: 'fixa' },
+            { tipo: 'linha', nome: 'Mensalidade Escolar', secao: 'fixa' },
+            { tipo: 'linha', nome: 'Assinaturas / Serviços', secao: 'fixa' },
+            { tipo: 'linha', nome: 'Seguro de Carro', secao: 'fixa' },
+            { tipo: 'linha', nome: 'Internet', secao: 'fixa' },
+            { tipo: 'linha', nome: 'Parcela Empréstimo', secao: 'fixa' },
+            { tipo: 'linha', nome: 'Outras Fixas', secao: 'fixa' },
+            { tipo: 'total', nome: 'TOTAL FIXAS', cor: 'bg-rose-100 text-rose-900 font-bold' },
+
+            { tipo: 'header', nome: 'SAÍDA: DESPESAS VARIÁVEIS', cor: 'bg-amber-600 text-white font-bold', secao: 'variavel' },
+            { tipo: 'linha', nome: 'Supermercado / Alimentação', secao: 'variavel' },
+            { tipo: 'linha', nome: 'Conta de Luz', secao: 'variavel' },
+            { tipo: 'linha', nome: 'Conta de Água', secao: 'variavel' },
+            { tipo: 'linha', nome: 'Transporte Público', secao: 'variavel' },
+            { tipo: 'linha', nome: 'Gasolina', secao: 'variavel' },
+            { tipo: 'linha', nome: 'Celular', secao: 'variavel' },
+            { tipo: 'linha', nome: 'Lazer', secao: 'variavel' },
+            { tipo: 'linha', nome: 'Outros Variáveis', secao: 'variavel' },
+            { tipo: 'total', nome: 'TOTAL VARIÁVEIS', cor: 'bg-amber-100 text-amber-900 font-bold' },
+
+            { tipo: 'resumo-geral', nome: 'BALANÇO MENSAL', cor: 'bg-cyan-800 text-white font-bold' }
+        ];
+
+        let estruturaCartoesPadrao = [
+            { tipo: 'header', nome: 'FATURAS DE CARTÃO DE CRÉDITO', cor: 'bg-pink-700 text-white font-bold' },
+            { tipo: 'linha', nome: 'Nubank' },
+            { tipo: 'linha', nome: 'Itaú Card' },
+            { tipo: 'linha', nome: 'Mastercard Black' },
+            { tipo: 'linha', nome: 'Visa Platinum' },
+            { tipo: 'total', nome: 'TOTAL CARTÕES', cor: 'bg-pink-100 text-pink-900 font-bold' }
+        ];
+
+        let estruturaPlanilha = [];
+        let estruturaCartoes = [];
+        let statusPlanilha = {}; 
+        let statusCartoes = {};  
+        let metasApp = [];
+        let dadosApp = {};
+        let dadosCartoesApp = {};
+        let graficoEvolucaoObj = null;
+        let graficoPizzaObj = null;
+        let graficoCartoesObj = null;
+
+        function carregarDadosStorage() {
+            const ano = document.getElementById('anoSelect').value;
+            const estruturaSalva = localStorage.getItem(`estrutura_financas_${ano}`);
+            const cartoesSalvo = localStorage.getItem(`estrutura_cartoes_${ano}`);
+            const statusSalvo = localStorage.getItem(`status_financas_${ano}`);
+            const statusCartoesSalvo = localStorage.getItem(`status_cartoes_${ano}`);
+            const metasSalva = localStorage.getItem(`metas_${ano}`);
+            const salvo = localStorage.getItem(`financas_${ano}`);
+            const salvoCartoes = localStorage.getItem(`cartoes_${ano}`);
+
+            estruturaPlanilha = estruturaSalva ? JSON.parse(estruturaSalva) : JSON.parse(JSON.stringify(estruturaPlanilhaPadrao));
+            estruturaCartoes = cartoesSalvo ? JSON.parse(cartoesSalvo) : JSON.parse(JSON.stringify(estruturaCartoesPadrao));
+            statusPlanilha = statusSalvo ? JSON.parse(statusSalvo) : {};
+            statusCartoes = statusCartoesSalvo ? JSON.parse(statusCartoesSalvo) : {};
+            metasApp = metasSalva ? JSON.parse(metasSalva) : [
+                { id: 1, nome: 'Reserva de Emergência', alvo: 10000, atual: 3500 },
+                { id: 2, nome: 'Viagem de Férias', alvo: 5000, atual: 1200 }
+            ];
+
+            if (salvo) {
+                dadosApp = JSON.parse(salvo);
+            } else {
+                dadosApp = {};
+                estruturaPlanilha.forEach((item, rIdx) => {
+                    if (item.tipo === 'linha') {
+                        dadosApp[rIdx] = new Array(12).fill(0);
+                    }
+                });
+            }
+
+            if (salvoCartoes) {
+                dadosCartoesApp = JSON.parse(salvoCartoes);
+            } else {
+                dadosCartoesApp = {};
+                estruturaCartoes.forEach((item, rIdx) => {
+                    if (item.tipo === 'linha') {
+                        dadosCartoesApp[rIdx] = new Array(12).fill(0);
+                    }
+                });
+            }
+        }
+
+        function mudarAba(aba) {
+            ['dashboard', 'planilha', 'cartoes', 'poupancas'].forEach(a => {
+                document.getElementById(`tab-${a}`).classList.add('hidden');
+                const btn = document.getElementById(`btn-${a}`);
+                btn.classList.remove('border-pink-600', 'text-pink-600', 'border-indigo-600', 'text-indigo-600');
+                btn.classList.add('border-transparent', 'text-slate-500');
+            });
+            document.getElementById(`tab-${aba}`).classList.remove('hidden');
+            const ativoBtn = document.getElementById(`btn-${aba}`);
+            let corAtiva = aba === 'poupancas' ? 'indigo-600' : 'pink-600';
+            ativoBtn.classList.add(`border-${corAtiva}`, `text-${corAtiva}`);
+            ativoBtn.classList.remove('border-transparent', 'text-slate-500');
+
+            if (aba === 'dashboard') atualizarDashboard();
+            if (aba === 'poupancas') {
+                montarMetas();
+                atualizarSelectSimulador();
+            }
+        }
+
+        function mostrarToast(msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-msg').innerText = msg;
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+
+        // ================= MODAIS =================
+        function abrirModalCategoria() { document.getElementById('modalCategoria').classList.remove('hidden'); }
+        function fecharModalCategoria() { document.getElementById('modalCategoria').classList.add('hidden'); document.getElementById('novaCatNome').value = ''; }
+
+        function adicionarCategoria() {
+            const secao = document.getElementById('novaCatSecao').value;
+            const nome = document.getElementById('novaCatNome').value.trim();
+            if (!nome) { alert('Digite o nome da categoria.'); return; }
+
+            let targetIdx = 5;
+            if (secao === 'fixa') targetIdx = 16;
+            if (secao === 'variavel') targetIdx = estruturaPlanilha.length - 1;
+
+            estruturaPlanilha.splice(targetIdx, 0, { tipo: 'linha', nome: nome, secao: secao });
+
+            let novosDados = {};
+            let rNovo = 0;
+            estruturaPlanilha.forEach((item) => {
+                if (item.tipo === 'linha') {
+                    let matchKey = Object.keys(dadosApp).find(k => {
+                        let originalItem = estruturaPlanilhaPadrao[k];
+                        return originalItem && originalItem.nome === item.nome;
+                    });
+                    novosDados[rNovo] = matchKey ? dadosApp[matchKey] : new Array(12).fill(0);
+                }
+                rNovo++;
+            });
+            dadosApp = novosDados;
+
+            fecharModalCategoria();
+            montarPlanilhaAnual();
+            salvarPlanilha();
+            mostrarToast('Categoria adicionada com sucesso!');
+        }
+
+        function abrirModalCartao() { document.getElementById('modalCartao').classList.remove('hidden'); }
+        function fecharModalCartao() { document.getElementById('modalCartao').classList.add('hidden'); document.getElementById('novoCartaoNome').value = ''; }
+
+        function adicionarCartao() {
+            const nome = document.getElementById('novoCartaoNome').value.trim();
+            if (!nome) { alert('Digite o nome do cartão.'); return; }
+
+            let targetIdx = estruturaCartoes.length - 1;
+            estruturaCartoes.splice(targetIdx, 0, { tipo: 'linha', nome: nome });
+
+            let novosDadosCartao = {};
+            let cNovo = 0;
+            estruturaCartoes.forEach((item) => {
+                if (item.tipo === 'linha') {
+                    let matchKey = Object.keys(dadosCartoesApp).find(k => {
+                        let originalItem = estruturaCartoesPadrao[k];
+                        return originalItem && originalItem.nome === item.nome;
+                    });
+                    novosDadosCartao[cNovo] = matchKey ? dadosCartoesApp[matchKey] : new Array(12).fill(0);
+                }
+                cNovo++;
+            });
+            dadosCartoesApp = novosDadosCartao;
+
+            fecharModalCartao();
+            montarCartoesAnual();
+            salvarCartoes();
+            mostrarToast('Cartão adicionado com sucesso!');
+        }
+
+        function abrirModalMeta() { document.getElementById('modalMeta').classList.remove('hidden'); }
+        function fecharModalMeta() { 
+            document.getElementById('modalMeta').classList.add('hidden'); 
+            document.getElementById('metaNome').value = '';
+            document.getElementById('metaAlvo').value = '';
+            document.getElementById('metaAtual').value = '';
+        }
+
+        function adicionarMeta() {
+            const nome = document.getElementById('metaNome').value.trim();
+            const alvo = parseFloat(document.getElementById('metaAlvo').value) || 0;
+            const atual = parseFloat(document.getElementById('metaAtual').value) || 0;
+
+            if (!nome || alvo <= 0) { alert('Preencha o nome e um valor alvo válido.'); return; }
+
+            metasApp.push({ id: Date.now(), nome, alvo, atual });
+            salvarMetasStorage();
+            fecharModalMeta();
+            montarMetas();
+            atualizarSelectSimulador();
+            mostrarToast('Meta cadastrada com sucesso!');
+        }
+
+        function atualizarValorMeta(id, delta) {
+            const meta = metasApp.find(m => m.id === id);
+            if (meta) {
+                meta.atual = Math.max(0, meta.atual + delta);
+                salvarMetasStorage();
+                montarMetas();
+                executarSimulacao();
+            }
+        }
+
+        function excluirMeta(id) {
+            if (confirm('Deseja excluir esta meta?')) {
+                metasApp = metasApp.filter(m => m.id !== id);
+                salvarMetasStorage();
+                montarMetas();
+                atualizarSelectSimulador();
+                mostrarToast('Meta removida.');
+            }
+        }
+
+        function salvarMetasStorage() {
+            const ano = document.getElementById('anoSelect').value;
+            localStorage.setItem(`metas_${ano}`, JSON.stringify(metasApp));
+        }
+
+        function atualizarSelectSimulador() {
+            const sel = document.getElementById('simuladorMetaId');
+            if (!sel) return;
+            let html = '';
+            metasApp.forEach(m => {
+                html += `<option value="${m.id}">${m.nome} (Falta R$ ${(m.alvo - m.atual).toFixed(2)})</option>`;
+            });
+            sel.innerHTML = html;
+            executarSimulacao();
+        }
+
+        function executarSimulacao() {
+            const metaId = document.getElementById('simuladorMetaId').value;
+            const mensal = parseFloat(document.getElementById('simuladorMensal').value) || 0;
+            const resDiv = document.getElementById('resultadoSimulador');
+
+            const meta = metasApp.find(m => m.id == metaId);
+            if (!meta || mensal <= 0) {
+                resDiv.innerText = 'Insira um valor mensal válido para simular.';
+                return;
+            }
+
+            let falta = meta.alvo - meta.atual;
+            if (falta <= 0) {
+                resDiv.innerText = '🎉 Parabéns! Esta meta já foi atingida!';
+                return;
+            }
+
+            let mesesNecessarios = Math.ceil(falta / mensal);
+            let anos = Math.floor(mesesNecessarios / 12);
+            let mesesRestos = mesesNecessarios % 12;
+
+            let tempoStr = '';
+            if (anos > 0) tempoStr += `${anos} ano(s) `;
+            if (mesesRestos > 0) tempoStr += `${mesesRestos} mês(es)`;
+
+            resDiv.innerText = `⏱️ Faltam R$ ${falta.toFixed(2)}. Com R$ ${mensal.toFixed(2)}/mês, você alcançará em aprox. ${tempoStr} (${mesesNecessarios} meses).`;
+        }
+
+        function montarMetas() {
+            const container = document.getElementById('lista-metas');
+            if (!metasApp.length) {
+                container.innerHTML = `<div class="col-span-full bg-white p-8 rounded-xl text-center text-slate-400 border border-slate-200">Nenhuma meta ou poupança cadastrada. Clique em "Nova Meta / Poupança" para começar.</div>`;
+                return;
+            }
+
+            let html = '';
+            metasApp.forEach(meta => {
+                let perc = meta.alvo > 0 ? Math.min(100, (meta.atual / meta.alvo) * 100) : 0;
+                let corBarra = perc >= 100 ? 'bg-emerald-500' : 'bg-indigo-600';
+                html += `
+                    <div class="bg-white border border-slate-200 p-5 rounded-xl shadow-sm space-y-4">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h4 class="font-bold text-slate-800 text-base">${meta.nome}</h4>
+                                <p class="text-xs text-slate-500">Alvo: R$ ${meta.alvo.toFixed(2)}</p>
+                            </div>
+                            <button onclick="excluirMeta(${meta.id})" class="text-slate-400 hover:text-rose-600 transition"><i class="fa-solid fa-trash-can text-sm"></i></button>
+                        </div>
+                        <div class="space-y-1">
+                            <div class="flex justify-between text-xs font-semibold">
+                                <span class="text-slate-700">Guardado: R$ ${meta.atual.toFixed(2)}</span>
+                                <span class="text-indigo-600">${perc.toFixed(1)}%</span>
+                            </div>
+                            <div class="w-full bg-slate-100 h-3 rounded-full overflow-hidden border border-slate-200">
+                                <div class="${corBarra} h-full transition-all duration-500" style="width: ${perc}%"></div>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between pt-2 border-t border-slate-100">
+                            <span class="text-xs text-slate-500 font-medium">Ajustar saldo:</span>
+                            <div class="flex items-center gap-1.5">
+                                <button onclick="atualizarValorMeta(${meta.id}, -100)" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded text-xs font-bold">-R$ 100</button>
+                                <button onclick="atualizarValorMeta(${meta.id}, 100)" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-2.5 py-1 rounded text-xs font-bold">+R$ 100</button>
+                                <button onclick="atualizarValorMeta(${meta.id}, 500)" class="bg-indigo-600 hover:bg-indigo-700 text-white px-2.5 py-1 rounded text-xs font-bold">+R$ 500</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        // ================= BACKUP & RESTORE =================
+        function exportarBackup() {
+            const ano = document.getElementById('anoSelect').value;
+            const backupData = {
+                ano: ano,
+                estrutura_financas: localStorage.getItem(`estrutura_financas_${ano}`),
+                financas: localStorage.getItem(`financas_${ano}`),
+                estrutura_cartoes: localStorage.getItem(`estrutura_cartoes_${ano}`),
+                cartoes: localStorage.getItem(`cartoes_${ano}`),
+                status_financas: localStorage.getItem(`status_financas_${ano}`),
+                status_cartoes: localStorage.getItem(`status_cartoes_${ano}`),
+                metas: localStorage.getItem(`metas_${ano}`)
+            };
+            const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `backup_financeiro_${ano}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            mostrarToast('Backup exportado com sucesso!');
+        }
+
+        function importarBackup(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (data.ano) {
+                        localStorage.setItem(`estrutura_financas_${data.ano}`, data.estrutura_financas);
+                        localStorage.setItem(`financas_${data.ano}`, data.financas);
+                        localStorage.setItem(`estrutura_cartoes_${data.ano}`, data.estrutura_cartoes);
+                        localStorage.setItem(`cartoes_${data.ano}`, data.cartoes);
+                        localStorage.setItem(`status_financas_${data.ano}`, data.status_financas);
+                        localStorage.setItem(`status_cartoes_${data.ano}`, data.status_cartoes);
+                        localStorage.setItem(`metas_${data.ano}`, data.metas);
+                        document.getElementById('anoSelect').value = data.ano;
+                        carregarDadosStorage();
+                        montarPlanilhaAnual();
+                        montarCartoesAnual();
+                        montarMetas();
+                        atualizarDashboard();
+                        mostrarToast('Backup importado com sucesso!');
+                    }
+                } catch (err) {
+                    alert('Arquivo de backup inválido.');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // ================= CICLO DE STATUS (PAGO / PENDENTE / DEVENDO) =================
+        function cicloStatus(rIdx, mIdx, tipoTabela) {
+            let statusMap = tipoTabela === 'planilha' ? statusPlanilha : statusCartoes;
+            let key = `${rIdx}_${mIdx}`;
+            let atual = statusMap[key] || 'pendente';
+
+            if (atual === 'pendente') statusMap[key] = 'pago';
+            else if (atual === 'pago') statusMap[key] = 'devendo';
+            else statusMap[key] = 'pendente';
+
+            if (tipoTabela === 'planilha') montarPlanilhaAnual();
+            else montarCartoesAnual();
+        }
+
+        function getCorStatus(rIdx, mIdx, tipoTabela) {
+            let statusMap = tipoTabela === 'planilha' ? statusPlanilha : statusCartoes;
+            let key = `${rIdx}_${mIdx}`;
+            let st = statusMap[key] || 'pendente';
+            if (st === 'pago') return 'bg-emerald-500';
+            if (st === 'devendo') return 'bg-rose-500';
+            return 'bg-amber-400';
+        }
+
+        // ================= PLANILHA ANUAL =================
+        function montarPlanilhaAnual() {
+            const filtro = document.getElementById('filtroStatusPlanilha').value;
+            const thead = document.getElementById('planilha-head');
+            let headHTML = `<tr><th class="p-2.5 border-b border-slate-300 w-[18%]">Categorias / Itens</th>`;
+            meses.forEach(m => headHTML += `<th class="p-2.5 border-b border-slate-300 text-right w-[6%]">${m}</th>`);
+            headHTML += `<th class="p-2.5 border-b border-slate-300 text-right w-[10%]">Total Anual</th></tr>`;
+            thead.innerHTML = headHTML;
+
+            const tbody = document.getElementById('planilha-body');
+            let bodyHTML = '';
+
+            estruturaPlanilha.forEach((item, rIdx) => {
+                if (item.tipo === 'header') {
+                    bodyHTML += `<tr class="${item.cor}"><td colspan="14" class="p-2 font-bold text-xs uppercase tracking-wider">${item.nome}</td></tr>`;
+                } else if (item.tipo === 'linha') {
+                    let exibirLinha = true;
+                    if (filtro !== 'todos') {
+                        let temMatch = false;
+                        for (let m = 0; m < 12; m++) {
+                            let key = `${rIdx}_${m}`;
+                            let st = statusPlanilha[key] || 'pendente';
+                            let val = dadosApp[rIdx] && dadosApp[rIdx][m] ? Number(dadosApp[rIdx][m]) : 0;
+                            if (val > 0 && st === filtro) { temMatch = true; break; }
+                        }
+                        exibirLinha = temMatch;
+                    }
+
+                    if (exibirLinha) {
+                        bodyHTML += `<tr class="hover:bg-slate-50 transition">`;
+                        bodyHTML += `<td class="p-2 font-medium text-slate-700 border-b border-slate-200 truncate" title="${item.nome}">${item.nome}</td>`;
+                        for (let mIdx = 0; mIdx < 12; mIdx++) {
+                            let val = dadosApp[rIdx] && dadosApp[rIdx][mIdx] !== undefined ? dadosApp[rIdx][mIdx] : 0;
+                            let corDot = getCorStatus(rIdx, mIdx, 'planilha');
+                            bodyHTML += `<td class="p-1 border-b border-slate-200 text-right relative">
+                                <div class="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded px-1 py-0.5">
+                                    <button type="button" onclick="cicloStatus(${rIdx}, ${mIdx}, 'planilha')" title="Status: Clique para alterar (Pago/Pendente/Devendo)" class="w-2.5 h-2.5 rounded-full ${corDot} shrink-0 cursor-pointer hover:scale-125 transition"></button>
+                                    <input type="number" step="0.01" value="${val}" data-row="${rIdx}" data-mes="${mIdx}" onchange="atualizarCelulaPlanilha(this)" class="w-full bg-transparent text-right text-[11px] text-slate-800 focus:outline-none">
+                                </div>
+                            </td>`;
+                        }
+                        let totalLinha = dadosApp[rIdx] ? dadosApp[rIdx].reduce((a, b) => a + Number(b), 0) : 0;
+                        bodyHTML += `<td class="p-2 text-right font-semibold text-slate-800 border-b border-slate-200" id="total-row-${rIdx}">R$ ${totalLinha.toFixed(2)}</td>`;
+                        bodyHTML += `</tr>`;
+                    }
+                } else if (item.tipo === 'total' || item.tipo === 'resumo-geral') {
+                    bodyHTML += `<tr class="${item.cor}">`;
+                    bodyHTML += `<td class="p-2.5 uppercase font-bold ${item.tipo === 'resumo-geral' ? 'text-white' : ''}">${item.nome}</td>`;
+                    for (let mIdx = 0; mIdx < 12; mIdx++) {
+                        bodyHTML += `<td class="p-2.5 text-right font-bold text-[11px] ${item.tipo === 'resumo-geral' ? 'text-white' : ''}" id="calc-${rIdx}-${mIdx}">R$ 0,00</td>`;
+                    }
+                    bodyHTML += `<td class="p-2.5 text-right font-bold text-[11px] ${item.tipo === 'resumo-geral' ? 'text-white' : ''}" id="calc-ano-${rIdx}">R$ 0,00</td>`;
+                    bodyHTML += `</tr>`;
+                }
+            });
+            tbody.innerHTML = bodyHTML;
+            calcularTotaisPlanilha();
+        }
+
+        function atualizarCelulaPlanilha(input) {
+            const rIdx = Number(input.dataset.row);
+            const mIdx = Number(input.dataset.mes);
+            const val = parseFloat(input.value) || 0;
+
+            if (!dadosApp[rIdx]) dadosApp[rIdx] = new Array(12).fill(0);
+            dadosApp[rIdx][mIdx] = val;
+
+            let totalLinha = dadosApp[rIdx].reduce((a, b) => a + Number(b), 0);
+            document.getElementById(`total-row-${rIdx}`).innerText = `R$ ${totalLinha.toFixed(2)}`;
+
+            calcularTotaisPlanilha();
+        }
+
+        function calcularTotaisPlanilha() {
+            let recMes = new Array(12).fill(0);
+            let fixMes = new Array(12).fill(0);
+            let varMes = new Array(12).fill(0);
+            let cartMes = new Array(12).fill(0);
+
+            let secAtual = 'rec';
+            estruturaPlanilha.forEach((item, rIdx) => {
+                if (item.nome.includes('RECEITAS')) secAtual = 'rec';
+                else if (item.nome.includes('DESPESAS FIXAS')) secAtual = 'fix';
+                else if (item.nome.includes('DESPESAS VARIÁVEIS')) secAtual = 'var';
+
+                if (item.tipo === 'linha') {
+                    for (let m = 0; m < 12; m++) {
+                        let v = dadosApp[rIdx] && dadosApp[rIdx][m] ? Number(dadosApp[rIdx][m]) : 0;
+                        if (secAtual === 'rec') recMes[m] += v;
+                        else if (secAtual === 'fix') fixMes[m] += v;
+                        else if (secAtual === 'var') varMes[m] += v;
+                    }
+                }
+            });
+
+            estruturaCartoes.forEach((item, rIdx) => {
+                if (item.tipo === 'linha') {
+                    for (let m = 0; m < 12; m++) {
+                        let v = dadosCartoesApp[rIdx] && dadosCartoesApp[rIdx][m] ? Number(dadosCartoesApp[rIdx][m]) : 0;
+                        cartMes[m] += v;
+                    }
+                }
+            });
+
+            estruturaPlanilha.forEach((item, rIdx) => {
+                if (item.tipo === 'total' || item.tipo === 'resumo-geral') {
+                    let totAno = 0;
+                    for (let m = 0; m < 12; m++) {
+                        let valM = 0;
+                        if (item.nome.includes('TOTAL RECEITAS')) valM = recMes[m];
+                        else if (item.nome.includes('TOTAL FIXAS')) valM = fixMes[m];
+                        else if (item.nome.includes('TOTAL VARIÁVEIS')) valM = varMes[m];
+                        else if (item.nome.includes('BALANÇO')) {
+                            valM = recMes[m] - (fixMes[m] + varMes[m] + cartMes[m]);
+                        }
+                        totAno += valM;
+                        const el = document.getElementById(`calc-${rIdx}-${m}`);
+                        if (el) {
+                            el.innerText = `R$ ${valM.toFixed(2)}`;
+                            if (item.tipo === 'resumo-geral') {
+                                el.className = `p-2.5 text-right font-bold text-[11px] text-white ${valM < 0 ? 'text-amber-200' : ''}`;
+                            }
+                        }
+                    }
+                    const elAno = document.getElementById(`calc-ano-${rIdx}`);
+                    if (elAno) elAno.innerText = `R$ ${totAno.toFixed(2)}`;
+                }
+            });
+        }
+
+        function salvarPlanilha() {
+            const ano = document.getElementById('anoSelect').value;
+            localStorage.setItem(`estrutura_financas_${ano}`, JSON.stringify(estruturaPlanilha));
+            localStorage.setItem(`financas_${ano}`, JSON.stringify(dadosApp));
+            localStorage.setItem(`status_financas_${ano}`, JSON.stringify(statusPlanilha));
+            mostrarToast('Planilha salva com sucesso!');
+        }
+
+        // ================= CARTÕES FORMATO ANUAL =================
+        function montarCartoesAnual() {
+            const filtro = document.getElementById('filtroStatusCartoes').value;
+            const thead = document.getElementById('cartoes-head');
+            let headHTML = `<tr><th class="p-2.5 border-b border-slate-300 w-[18%]">Cartão / Bandeira</th>`;
+            meses.forEach(m => headHTML += `<th class="p-2.5 border-b border-slate-300 text-right w-[6%]">${m}</th>`);
+            headHTML += `<th class="p-2.5 border-b border-slate-300 text-right w-[10%]">Total Anual</th></tr>`;
+            thead.innerHTML = headHTML;
+
+            const tbody = document.getElementById('cartoes-body');
+            let bodyHTML = '';
+
+            estruturaCartoes.forEach((item, rIdx) => {
+                if (item.tipo === 'header') {
+                    bodyHTML += `<tr class="${item.cor}"><td colspan="14" class="p-2 font-bold text-xs uppercase tracking-wider">${item.nome}</td></tr>`;
+                } else if (item.tipo === 'linha') {
+                    let exibirLinha = true;
+                    if (filtro !== 'todos') {
+                        let temMatch = false;
+                        for (let m = 0; m < 12; m++) {
+                            let key = `${rIdx}_${m}`;
+                            let st = statusCartoes[key] || 'pendente';
+                            let val = dadosCartoesApp[rIdx] && dadosCartoesApp[rIdx][m] ? Number(dadosCartoesApp[rIdx][m]) : 0;
+                            if (val > 0 && st === filtro) { temMatch = true; break; }
+                        }
+                        exibirLinha = temMatch;
+                    }
+
+                    if (exibirLinha) {
+                        bodyHTML += `<tr class="hover:bg-slate-50 transition">`;
+                        bodyHTML += `<td class="p-2 font-medium text-slate-700 border-b border-slate-200 truncate" title="${item.nome}">${item.nome}</td>`;
+                        for (let mIdx = 0; mIdx < 12; mIdx++) {
+                            let val = dadosCartoesApp[rIdx] && dadosCartoesApp[rIdx][mIdx] !== undefined ? dadosCartoesApp[rIdx][mIdx] : 0;
+                            let corDot = getCorStatus(rIdx, mIdx, 'cartoes');
+                            bodyHTML += `<td class="p-1 border-b border-slate-200 text-right">
+                                <div class="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded px-1 py-0.5">
+                                    <button type="button" onclick="cicloStatus(${rIdx}, ${mIdx}, 'cartoes')" title="Status: Clique para alterar (Pago/Pendente/Devendo)" class="w-2.5 h-2.5 rounded-full ${corDot} shrink-0 cursor-pointer hover:scale-125 transition"></button>
+                                    <input type="number" step="0.01" value="${val}" data-crow="${rIdx}" data-cmes="${mIdx}" onchange="atualizarCelulaCartao(this)" class="w-full bg-transparent text-right text-[11px] text-slate-800 focus:outline-none">
+                                </div>
+                            </td>`;
+                        }
+                        let totalLinha = dadosCartoesApp[rIdx] ? dadosCartoesApp[rIdx].reduce((a, b) => a + Number(b), 0) : 0;
+                        bodyHTML += `<td class="p-2 text-right font-semibold text-slate-800 border-b border-slate-200" id="total-crow-${rIdx}">R$ ${totalLinha.toFixed(2)}</td>`;
+                        bodyHTML += `</tr>`;
+                    }
+                } else if (item.tipo === 'total') {
+                    bodyHTML += `<tr class="${item.cor}">`;
+                    bodyHTML += `<td class="p-2.5 uppercase font-bold">${item.nome}</td>`;
+                    for (let mIdx = 0; mIdx < 12; mIdx++) {
+                        bodyHTML += `<td class="p-2.5 text-right font-bold text-[11px]" id="col-ctotal-${rIdx}-${mIdx}">R$ 0,00</td>`;
+                    }
+                    bodyHTML += `<td class="p-2.5 text-right font-bold text-[11px]" id="col-ctotal-ano-${rIdx}">R$ 0,00</td>`;
+                    bodyHTML += `</tr>`;
+                }
+            });
+            tbody.innerHTML = bodyHTML;
+            calcularTotaisCartoes();
+        }
+
+        function atualizarCelulaCartao(input) {
+            const rIdx = Number(input.dataset.crow);
+            const mIdx = Number(input.dataset.cmes);
+            const val = parseFloat(input.value) || 0;
+
+            if (!dadosCartoesApp[rIdx]) dadosCartoesApp[rIdx] = new Array(12).fill(0);
+            dadosCartoesApp[rIdx][mIdx] = val;
+
+            let totalLinha = dadosCartoesApp[rIdx].reduce((a, b) => a + Number(b), 0);
+            document.getElementById(`total-crow-${rIdx}`).innerText = `R$ ${totalLinha.toFixed(2)}`;
+
+            calcularTotaisCartoes();
+        }
+
+        function calcularTotaisCartoes() {
+            let totalCartoesMes = new Array(12).fill(0);
+            estruturaCartoes.forEach((item, rIdx) => {
+                if (item.tipo === 'linha') {
+                    for (let m = 0; m < 12; m++) {
+                        let v = dadosCartoesApp[rIdx] && dadosCartoesApp[rIdx][m] ? Number(dadosCartoesApp[rIdx][m]) : 0;
+                        totalCartoesMes[m] += v;
+                    }
+                }
+            });
+
+            estruturaCartoes.forEach((item, rIdx) => {
+                if (item.tipo === 'total') {
+                    let totAno = 0;
+                    for (let m = 0; m < 12; m++) {
+                        totAno += totalCartoesMes[m];
+                        const el = document.getElementById(`col-ctotal-${rIdx}-${m}`);
+                        if (el) el.innerText = `R$ ${totalCartoesMes[m].toFixed(2)}`;
+                    }
+                    const elAno = document.getElementById(`col-ctotal-ano-${rIdx}`);
+                    if (elAno) elAno.innerText = `R$ ${totAno.toFixed(2)}`;
+                }
+            });
+
+            calcularTotaisPlanilha();
+        }
+
+        function salvarCartoes() {
+            const ano = document.getElementById('anoSelect').value;
+            localStorage.setItem(`estrutura_cartoes_${ano}`, JSON.stringify(estruturaCartoes));
+            localStorage.setItem(`cartoes_${ano}`, JSON.stringify(dadosCartoesApp));
+            localStorage.setItem(`status_cartoes_${ano}`, JSON.stringify(statusCartoes));
+            mostrarToast('Dados de cartões salvos com sucesso!');
+        }
+
+        // ================= DASHBOARD & GRÁFICOS =================
+        function atualizarDashboard() {
+            let totalReceitasAno = 0;
+            let totalDespesasAno = 0;
+            let totalCartoesAno = 0;
+            let totalPoupanca = 0;
+
+            let receitasPorMes = new Array(12).fill(0);
+            let despesasPorMes = new Array(12).fill(0);
+            let cartoesPorMesNomes = [];
+            let cartoesDatasets = [];
+            let coresCartoes = ['#db2777', '#6366f1', '#f59e0b', '#10b981', '#8b5cf6', '#ec4899'];
+
+            let secAtual = 'rec';
+            estruturaPlanilha.forEach((item, rIdx) => {
+                if (item.nome.includes('RECEITAS')) secAtual = 'rec';
+                else if (item.nome.includes('DESPESAS FIXAS')) secAtual = 'fix';
+                else if (item.nome.includes('DESPESAS VARIÁVEIS')) secAtual = 'var';
+
+                if (item.tipo === 'linha' && dadosApp[rIdx]) {
+                    dadosApp[rIdx].forEach((v, m) => {
+                        let val = Number(v);
+                        if (secAtual === 'rec') receitasPorMes[m] += val;
+                        else despesasPorMes[m] += val;
+                    });
+                }
+            });
+
+            let cIdx = 0;
+            estruturaCartoes.forEach((item, rIdx) => {
+                if (item.tipo === 'linha') {
+                    cartoesPorMesNomes.push(item.nome);
+                    let cartaoMeses = new Array(12).fill(0);
+                    if (dadosCartoesApp[rIdx]) {
+                        dadosCartoesApp[rIdx].forEach((v, m) => {
+                            let val = Number(v);
+                            despesasPorMes[m] += val;
+                            totalCartoesAno += val;
+                            cartaoMeses[m] += val;
+                        });
+                    }
+                    cartoesDatasets.push({
+                        label: item.nome,
+                        data: cartaoMeses,
+                        backgroundColor: coresCartoes[cIdx % coresCartoes.length],
+                        borderRadius: 4
+                    });
+                    cIdx++;
+                }
+            });
+
+            metasApp.forEach(m => totalPoupanca += m.atual);
+
+            receitasPorMes.forEach(v => totalReceitasAno += v);
+            despesasPorMes.forEach(v => totalDespesasAno += v);
+
+            let balancoAno = totalReceitasAno - totalDespesasAno;
+
+            document.getElementById('kpi-receita').innerText = `R$ ${totalReceitasAno.toFixed(2)}`;
+            document.getElementById('kpi-despesa').innerText = `R$ ${totalDespesasAno.toFixed(2)}`;
+            document.getElementById('kpi-balanco').innerText = `R$ ${balancoAno.toFixed(2)}`;
+            document.getElementById('kpi-poupanca').innerText = `R$ ${totalPoupanca.toFixed(2)}`;
+
+            // Comparativo interanual
+            const anoAtual = document.getElementById('anoSelect').value;
+            const anoComp = document.getElementById('anoComparacao').value;
+            const saldoCompStr = localStorage.getItem(`financas_${anoComp}`);
+            const cartoesCompStr = localStorage.getItem(`cartoes_${anoComp}`);
+
+            if (saldoCompStr || cartoesCompStr) {
+                let recComp = 0, despComp = 0;
+                if (saldoCompStr) {
+                    let dComp = JSON.parse(saldoCompStr);
+                    Object.keys(dComp).forEach(k => {
+                        let item = estruturaPlanilha[k];
+                        if (item && item.tipo === 'linha') {
+                            dComp[k].forEach((v, m) => {
+                                let val = Number(v);
+                                if (k <= 4) recComp += val;
+                                else despComp += val;
+                            });
+                        }
+                    });
+                }
+                if (cartoesCompStr) {
+                    let cComp = JSON.parse(cartoesCompStr);
+                    Object.keys(cComp).forEach(k => {
+                        cComp[k].forEach(v => despComp += Number(v));
+                    });
+                }
+                let balancoComp = recComp - despComp;
+                let dif = balancoAno - balancoComp;
+                const badge = document.getElementById('badgeComparacao');
+                badge.innerText = `${anoComp}: R$ ${balancoComp.toFixed(2)} (${dif >= 0 ? '+' : ''}R$ ${dif.toFixed(2)})`;
+            } else {
+                document.getElementById('badgeComparacao').innerText = `${anoComp}: Sem dados`;
+            }
+
+            renderizarGraficoEvolucao(receitasPorMes, despesasPorMes);
+            renderizarGraficoPizza(totalReceitasAno, totalDespesasAno, totalCartoesAno);
+            renderizarGraficoCartoes(cartoesDatasets);
+        }
+
+        function renderizarGraficoEvolucao(rec, desp) {
+            const ctx = document.getElementById('graficoEvolucao').getContext('2d');
+            if (graficoEvolucaoObj) graficoEvolucaoObj.destroy();
+
+            graficoEvolucaoObj = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: meses,
+                    datasets: [
+                        { label: 'Receitas', data: rec, backgroundColor: '#059669', borderRadius: 4 },
+                        { label: 'Despesas', data: desp, backgroundColor: '#e11d48', borderRadius: 4 }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { labels: { color: '#334155' } } },
+                    scales: {
+                        x: { ticks: { color: '#64748b' }, grid: { color: '#e2e8f0' } },
+                        y: { ticks: { color: '#64748b' }, grid: { color: '#e2e8f0' } }
+                    }
+                }
+            });
+        }
+
+        function renderizarGraficoPizza(rec, desp, cart) {
+            const ctx = document.getElementById('graficoPizza').getContext('2d');
+            if (graficoPizzaObj) graficoPizzaObj.destroy();
+
+            graficoPizzaObj = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Receitas', 'Despesas Gerais', 'Cartões'],
+                    datasets: [{
+                        data: [rec, desp - cart, cart],
+                        backgroundColor: ['#059669', '#e11d48', '#db2777'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom', labels: { color: '#334155', boxWidth: 12 } } }
+                }
+            });
+        }
+
+        function renderizarGraficoCartoes(datasets) {
+            const ctx = document.getElementById('graficoCartoesEvolucao').getContext('2d');
+            if (graficoCartoesObj) graficoCartoesObj.destroy();
+
+            graficoCartoesObj = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: meses,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { labels: { color: '#334155' } } },
+                    scales: {
+                        x: { stacked: true, ticks: { color: '#64748b' }, grid: { color: '#e2e8f0' } },
+                        y: { stacked: true, ticks: { color: '#64748b' }, grid: { color: '#e2e8f0' } }
+                    }
+                }
+            });
+        }
+
+        function restaurarPadroes() {
+            if (confirm('Deseja realmente limpar todos os dados, categorias e metas deste ano?')) {
+                const ano = document.getElementById('anoSelect').value;
+                localStorage.removeItem(`financas_${ano}`);
+                localStorage.removeItem(`cartoes_${ano}`);
+                localStorage.removeItem(`estrutura_financas_${ano}`);
+                localStorage.removeItem(`estrutura_cartoes_${ano}`);
+                localStorage.removeItem(`status_financas_${ano}`);
+                localStorage.removeItem(`status_cartoes_${ano}`);
+                localStorage.removeItem(`metas_${ano}`);
+                carregarDadosStorage();
+                montarPlanilhaAnual();
+                montarCartoesAnual();
+                montarMetas();
+                atualizarDashboard();
+                mostrarToast('Dados restaurados com sucesso!');
+            }
+        }
+
+        document.getElementById('anoSelect').addEventListener('change', () => {
+            carregarDadosStorage();
+            montarPlanilhaAnual();
+            montarCartoesAnual();
+            montarMetas();
+            atualizarDashboard();
+        });
+
+        // Inicialização
+        carregarDadosStorage();
+        montarPlanilhaAnual();
+        montarCartoesAnual();
+        montarMetas();
+        atualizarDashboard();
+    </script>
+</body>
+</html>
